@@ -1,0 +1,6 @@
+*.exe
+*.exp
+*.lib
+
+cuda-samples
+*kernel
