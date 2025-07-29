@@ -16,11 +16,9 @@ extern "C" {
     );
 }
 
-pub fn cuda_mat_mul(a: &[f32], b: &[f32], m: usize, k: usize, n: usize) -> Vec<f32> {
+pub fn cuda_mat_mul(a: &[f32], b: &[f32], c: &mut [f32], m: usize, k: usize, n: usize) {
     assert_eq!(a.len(), m * k, "Matrix A size mismatch");
     assert_eq!(b.len(), k * n, "Matrix B size mismatch");
-    
-    let mut c = vec![0.0f32; m * n];
     
     unsafe {
         launch_mat_mul(
@@ -32,6 +30,4 @@ pub fn cuda_mat_mul(a: &[f32], b: &[f32], m: usize, k: usize, n: usize) -> Vec<f
             n as c_int,
         );
     }
-    
-    c
 }

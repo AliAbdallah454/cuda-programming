@@ -3,6 +3,7 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
+
     println!("cargo:rerun-if-changed=cuda/mat_mul_kernel.cu");
     
     let out_dir = env::var("OUT_DIR").unwrap();
