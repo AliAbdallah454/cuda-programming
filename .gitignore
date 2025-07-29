@@ -2,5 +2,8 @@
 *.exp
 *.lib
 
+.env
+
 cuda-samples
+target
 *kernel
