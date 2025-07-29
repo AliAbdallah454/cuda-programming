@@ -1,0 +1,10 @@
+[package]
+name = "ffi-test"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+cc = "1.2.30"
+
+[dependencies]
+libc = "0.2.174"
