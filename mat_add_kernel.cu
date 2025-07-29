@@ -26,7 +26,7 @@ void print_matrix(const char* name, int matrix[SIZE][SIZE]) {
     printf("\n");
 }
 
-__global__ void mat_add(int A[SIZE*SIZE], int B[SIZE * SIZE], int C[SIZE * SIZE]) {
+__global__ void mat_mul(int A[SIZE*SIZE], int B[SIZE * SIZE], int C[SIZE * SIZE]) {
 
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -67,7 +67,7 @@ int main() {
     dim3 threads_per_block(4, 4);
     dim3 number_of_blocks(SIZE / threads_per_block.x, SIZE / threads_per_block.y);
 
-    mat_add <<<number_of_blocks, threads_per_block>>> (d_A, d_B, d_C);
+    mat_mul <<<number_of_blocks, threads_per_block>>> (d_A, d_B, d_C);
 
     cudaMemcpy(C, d_C, bytes, cudaMemcpyDeviceToHost);
 
