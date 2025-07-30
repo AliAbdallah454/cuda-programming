@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <iostream>
+#include "helper.h"
 
 using namespace std;
 
@@ -13,33 +14,33 @@ using namespace std;
 #define K 512
 #define BLOCK_DIM 32
 
-void fill_matrix(float *matrix, int r, int c) {
-    for (int i = 0; i < r; ++i)
-        for (int j = 0; j < c; ++j)
-            matrix[i * c + j] = rand() % 100; // Random number [0, 99]
-}
+// void fill_matrix(float *matrix, int r, int c) {
+//     for (int i = 0; i < r; ++i)
+//         for (int j = 0; j < c; ++j)
+//             matrix[i * c + j] = rand() % 100; // Random number [0, 99]
+// }
 
-void print_matrix(const char *name, float *matrix, int r, int c) {
-    printf("%s:\n", name);
-    for (int i = 0; i < r; ++i) {
-        for (int j = 0; j < c; ++j)
-            printf("%4f ", matrix[i * c + j]);
-        printf("\n");
-    }
-    printf("\n");
-}
+// void print_matrix(const char *name, float *matrix, int r, int c) {
+//     printf("%s:\n", name);
+//     for (int i = 0; i < r; ++i) {
+//         for (int j = 0; j < c; ++j)
+//             printf("%4f ", matrix[i * c + j]);
+//         printf("\n");
+//     }
+//     printf("\n");
+// }
 
-void mat_mul_cpu(float *A, float *B, float *C, int m, int k, int n) {
-    for (int i = 0; i < m; ++i) {
-        for (int j = 0; j < n; ++j) {
-            float sum = 0;
-            for (int l = 0; l < k; ++l) {
-                sum += A[i * k + l] * B[j + l * n];
-            }
-            C[i * n + j] = sum;
-        }
-    }
-}
+// void mat_mul_cpu(float *A, float *B, float *C, int m, int k, int n) {
+//     for (int i = 0; i < m; ++i) {
+//         for (int j = 0; j < n; ++j) {
+//             float sum = 0;
+//             for (int l = 0; l < k; ++l) {
+//                 sum += A[i * k + l] * B[j + l * n];
+//             }
+//             C[i * n + j] = sum;
+//         }
+//     }
+// }
 
 __global__ void mat_mul_gpu(float *A, float *B, float *C, int m, int k, int n) {
 
@@ -57,6 +58,7 @@ __global__ void mat_mul_gpu(float *A, float *B, float *C, int m, int k, int n) {
 }
 
 int main() {
+
     float A[M * K];
     float B[K * N];
     float C_cpu[M * N];
@@ -79,22 +81,30 @@ int main() {
     auto end_cpu = chrono::high_resolution_clock::now();    
     auto cpu_duration = chrono::duration_cast<chrono::microseconds>(end_cpu - start_cpu);
 
+    dim3 threads_per_block(BLOCK_DIM, BLOCK_DIM);
+    dim3 number_of_blocks((N + BLOCK_DIM - 1) / BLOCK_DIM, (M + BLOCK_DIM - 1) / BLOCK_DIM);
+
     float *d_A;
     float *d_B;
     float *d_C;
+
+    // Warm up START
+    cudaMalloc(&d_A, bytes_A);
+    cudaMalloc(&d_B, bytes_B);
+    cudaMalloc(&d_C, bytes_C);
+
+    mat_mul_gpu <<<number_of_blocks, threads_per_block>>> (d_A, d_B, d_C, M, K, N);
+    cudaDeviceSynchronize();
+    // Warm up END
+
+    auto start_gpu = chrono::high_resolution_clock::now();
 
     cudaMalloc(&d_A, bytes_A);
     cudaMalloc(&d_B, bytes_B);
     cudaMalloc(&d_C, bytes_C);
 
-    auto start_gpu = chrono::high_resolution_clock::now();
-
     cudaMemcpy(d_A, A, bytes_A, cudaMemcpyHostToDevice);
     cudaMemcpy(d_B, B, bytes_B, cudaMemcpyHostToDevice);
-    cudaMemset(d_C, 0, bytes_C);
-
-    dim3 threads_per_block(BLOCK_DIM, BLOCK_DIM);
-    dim3 number_of_blocks((N + BLOCK_DIM - 1) / BLOCK_DIM, (M + BLOCK_DIM - 1) / BLOCK_DIM);
 
     mat_mul_gpu <<<number_of_blocks, threads_per_block>>> (d_A, d_B, d_C, M, K, N);
     cudaDeviceSynchronize();
