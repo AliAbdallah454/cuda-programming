@@ -1,5 +1,6 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
+#include <stdio.h>
 
 __global__ void mat_mul_gpu(float *A, float *B, float *C, int m, int k, int n) {
     int i = blockIdx.y * blockDim.y + threadIdx.y;

@@ -14,6 +14,15 @@ extern "C" {
         k: c_int,
         n: c_int,
     );
+    
+    pub fn launch_cuBLAS_mat_mul(
+        a: *mut f32,
+        b: *mut f32,
+        c: *mut f32,
+        m: c_int,
+        k: c_int,
+        n: c_int,
+    );
 }
 
 pub fn cuda_mat_mul(a: &[f32], b: &[f32], c: &mut [f32], m: usize, k: usize, n: usize) {
@@ -22,6 +31,22 @@ pub fn cuda_mat_mul(a: &[f32], b: &[f32], c: &mut [f32], m: usize, k: usize, n: 
     
     unsafe {
         launch_mat_mul(
+            a.as_ptr() as *mut f32,
+            b.as_ptr() as *mut f32,
+            c.as_mut_ptr(),
+            m as c_int,
+            k as c_int,
+            n as c_int,
+        );
+    }
+}
+
+pub fn cublas_mat_mul(a: &[f32], b: &[f32], c: &mut [f32], m: usize, k: usize, n: usize) {
+    assert_eq!(a.len(), m * k, "Matrix A size mismatch");
+    assert_eq!(b.len(), k * n, "Matrix B size mismatch");
+    
+    unsafe {
+        launch_cuBLAS_mat_mul(
             a.as_ptr() as *mut f32,
             b.as_ptr() as *mut f32,
             c.as_mut_ptr(),
