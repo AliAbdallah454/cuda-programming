@@ -7,12 +7,10 @@
 
 using namespace std;
 
-#define M 512
-#define K 512
-#define N 512
+#define M 32 * 20
+#define K 32 * 20
+#define N 32 * 20
 
-// THE CURRENT CODE DOESN'T TAKE INTO ACCOUNT THE TIME NEEDED TO MOVE THE MATRIX TO THE GPU WHICH EXPLAINS THE GREAT AMMOUNT OF PERFORMANCE GAIN
-// SHOULD THESE TRANSFERS BE TAKEN INTO ACCOUNT THE PERFORMANCE GAIN WILL DROP
 int main() {
 
     // Host matrices (row-major for ease)
@@ -41,6 +39,13 @@ int main() {
 
     float *d_A, *d_B, *d_C;
 
+    // cuBLAS assumes column-major by default
+    // We compute: C = alpha * B^T * A^T + beta * C
+    float alpha = 1.0f;
+    float beta  = 0.0f;
+
+    /// Warm up START
+
     cudaMalloc(&d_A, bytes_A);
     cudaMalloc(&d_B, bytes_B);
     cudaMalloc(&d_C, bytes_C);
@@ -51,12 +56,7 @@ int main() {
     cublasHandle_t handle;
     cublasCreate(&handle);
 
-    // cuBLAS assumes column-major by default
-    // We compute: C = alpha * B^T * A^T + beta * C
-    float alpha = 1.0f;
-    float beta  = 0.0f;
-
-    // Warm up START
+    // cublasSgemm arguments: column-major so A and B are transposed
     cublasSgemm(handle,
                 CUBLAS_OP_N, CUBLAS_OP_N,
                 N, M, K,       // C is (N x M)
@@ -66,12 +66,24 @@ int main() {
                 &beta,
                 d_C, N);       // C is (N x M)
     cudaDeviceSynchronize();
-    // Warm up END
+    
+    /// Warm up END
 
     auto start_gpu = chrono::high_resolution_clock::now();
 
+
+    cudaMalloc(&d_A, bytes_A);
+    cudaMalloc(&d_B, bytes_B);
+    cudaMalloc(&d_C, bytes_C);
+
+    cudaMemcpy(d_A, h_A, bytes_A, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_B, h_B, bytes_B, cudaMemcpyHostToDevice);
+
+    cublasHandle_t handle_2;
+    cublasCreate(&handle_2);
+
     // cublasSgemm arguments: column-major so A and B are transposed
-    cublasSgemm(handle,
+    cublasSgemm(handle_2,
                 CUBLAS_OP_N, CUBLAS_OP_N,
                 N, M, K,       // C is (N x M)
                 &alpha,
@@ -89,6 +101,7 @@ int main() {
 
     // Clean up
     cublasDestroy(handle);
+    cublasDestroy(handle_2);
     cudaFree(d_A);
     cudaFree(d_B);
     cudaFree(d_C);
